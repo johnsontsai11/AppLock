@@ -57,7 +57,7 @@ class UsageLockService: Service() {
                     "Screen off detected in Usage Stats fallback. Resetting AppLock state."
                 )
                 AppLockManager.isLockScreenShown.set(false)
-                AppLockManager.clearTemporarilyUnlockedApp()
+                AppLockManager.resetAllUnlockState()
                 previousForegroundPackage = ""
                 pauseMonitoring = true
             } else if (intent?.action == Intent.ACTION_USER_PRESENT) {
@@ -133,7 +133,7 @@ class UsageLockService: Service() {
         try {
             if (!appLockRepository.isProtectEnabled() || applicationContext.isDeviceLocked()) {
                 if (applicationContext.isDeviceLocked()) {
-                    AppLockManager.appUnlockTimes.clear()
+                    AppLockManager.resetAllUnlockState()
                     previousForegroundPackage = ""
                 }
                 return
@@ -230,33 +230,14 @@ class UsageLockService: Service() {
         if (packageName !in lockedApps) return
 
         val unlockDurationMinutes = appLockRepository.getUnlockTimeDuration()
-        val unlockTimestamp = AppLockManager.appUnlockTimes[packageName] ?: 0L
 
         LogUtils.d(
             TAG,
-            "checkAndLockApp: pkg=$packageName, duration=$unlockDurationMinutes min, unlockTime=$unlockTimestamp, currentTime=$currentTime, isLockScreenShown=${AppLockManager.isLockScreenShown.get()}"
+            "checkAndLockApp: pkg=$packageName, duration=$unlockDurationMinutes min, unlockTime=${AppLockManager.appUnlockTimes[packageName]}, currentTime=$currentTime, isLockScreenShown=${AppLockManager.isLockScreenShown.get()}"
         )
 
-        if (unlockDurationMinutes > 0 && unlockTimestamp > 0) {
-            if (unlockDurationMinutes >= 10_000) {
-                return
-            }
-
-            val durationMillis = unlockDurationMinutes.toLong() * 60_000L
-
-            val elapsedMillis = currentTime - unlockTimestamp
-
-            LogUtils.d(
-                TAG,
-                "Grace period check: elapsed=${elapsedMillis}ms (${elapsedMillis / 1000}s), duration=${durationMillis}ms (${durationMillis / 1000}s)"
-            )
-
-            if (elapsedMillis < durationMillis) {
-                return
-            }
-
-            LogUtils.d(TAG, "Unlock grace period expired for $packageName. Clearing timestamp.")
-            AppLockManager.appUnlockTimes.remove(packageName)
+        if (AppLockManager.isWithinUnlockDuration(packageName, unlockDurationMinutes, currentTime)) {
+            return
         }
 
         if (AppLockManager.isLockScreenShown.get() || AppLockManager.currentBiometricState.toString() == biometricAuthStarted) {

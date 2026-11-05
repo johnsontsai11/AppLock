@@ -242,7 +242,7 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="settings_screen_shizuku_not_running_toast">Shizuku is not running</string>
     <string name="settings_screen_usage_permission_toast">Please grant usage access permission.
     </string>
-    <string name="settings_screen_unlock_duration_dialog_description_new">Choose how long apps should remain unlocked after entering the PIN:
+    <string name="settings_screen_unlock_duration_dialog_description_new">Choose how long apps stay unlocked after you leave them:
     </string>
     <string name="settings_screen_unlock_duration_dialog_option_immediate">Lock immediately</string>
     <string name="settings_screen_unlock_duration_dialog_option_minute">%1$d minute</string>
