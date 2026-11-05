@@ -14,10 +14,25 @@ android {
         applicationId = "dev.pranav.applock"
         minSdk = 26
         targetSdk = 37
-        versionCode = 251
-        versionName = "2.5.1"
+        versionCode = 252
+        versionName = "2.5.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Release signing key, provided by CI (see .github/workflows/release.yml).
+    // Without it, release builds fall back to the debug key.
+    val releaseKeystore = System.getenv("APPLOCK_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("APPLOCK_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("APPLOCK_KEY_ALIAS")
+                keyPassword = System.getenv("APPLOCK_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -31,7 +46,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(
+                if (releaseKeystore != null) "release" else "debug"
+            )
         }
     }
     compileOptions {
