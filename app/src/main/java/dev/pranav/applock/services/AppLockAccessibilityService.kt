@@ -133,14 +133,6 @@ class AppLockAccessibilityService : AccessibilityService() {
         }
 
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && event.text == packageManager.getApplicationInfo(
-                    event.packageName.toString(),
-                    0
-                ).loadLabel(packageManager)
-            ) {
-                Log.d(TAG, "Ignoring recents bug event: ${event.text}")
-                return
-            }
             if (!isRecentsOpen && isRecentlyOpened(event)) {
                 isRecentsOpen = true
                 Log.d(TAG, "Recents opened")

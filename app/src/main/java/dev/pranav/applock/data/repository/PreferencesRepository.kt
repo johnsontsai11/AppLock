@@ -46,7 +46,8 @@ class PreferencesRepository(context: Context) {
     }
 
     fun setPattern(pattern: String) {
-        appLockPrefs.edit(commit = true) { putString(KEY_PATTERN, pattern) }
+        val saltedHash = SecurityUtils.hashPassword(pattern, SecurityUtils.generateSalt())
+        appLockPrefs.edit(commit = true) { putString(KEY_PATTERN, saltedHash) }
     }
 
     fun getPattern(): String? {
@@ -55,7 +56,20 @@ class PreferencesRepository(context: Context) {
 
     fun validatePattern(inputPattern: String): Boolean {
         val storedPattern = getPattern()
-        return storedPattern != null && inputPattern == storedPattern
+        if (storedPattern.isNullOrBlank() || inputPattern.isEmpty()) return false
+
+        if (SecurityUtils.isSaltedHash(storedPattern)) {
+            return SecurityUtils.verifyPassword(inputPattern, storedPattern)
+        }
+
+        // Patterns saved by older versions are stored as plain text. Upgrade them to a salted
+        // hash the first time they are entered correctly.
+        if (inputPattern == storedPattern) {
+            setPattern(inputPattern)
+            return true
+        }
+
+        return false
     }
 
     fun setLockType(lockType: String) {
