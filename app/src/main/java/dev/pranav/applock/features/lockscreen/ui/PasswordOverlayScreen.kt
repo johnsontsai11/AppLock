@@ -2,6 +2,7 @@ package dev.pranav.applock.features.lockscreen.ui
 
 import dev.pranav.applock.features.lockscreen.ui.AlphanumericPasswordOverlayScreen
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -217,7 +218,7 @@ class PasswordOverlayActivity: FragmentActivity() {
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPasswordAttempt = onPinAttemptCallback,
                                 showCloseButton = true,
-                                onClose = { finish() }
+                                onClose = { goHomeAndFinish() }
                             )
                         }
 
@@ -232,7 +233,7 @@ class PasswordOverlayActivity: FragmentActivity() {
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPinAttempt = onPinAttemptCallback,
                                 showCloseButton = true,
-                                onClose = { finish() }
+                                onClose = { goHomeAndFinish() }
                             )
 
                             BackHandler { }
@@ -241,6 +242,23 @@ class PasswordOverlayActivity: FragmentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Leaves the locked app by going to the home screen. Just finishing this activity would
+     * reveal the locked app underneath, which then immediately triggers the lock screen again.
+     */
+    private fun goHomeAndFinish() {
+        try {
+            startActivity(
+                Intent(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_HOME)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to open home screen", e)
+        }
+        finish()
     }
 
     private fun setupBiometricPromptInternal() {
