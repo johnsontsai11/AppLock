@@ -41,6 +41,9 @@ class TransparentBiometricActivity: FragmentActivity() {
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
                     AppLockManager.reportBiometricAuthFinished()
+                    // The lock overlay was removed before showing the prompt. Allow the
+                    // service to show it again, otherwise the locked app is left exposed.
+                    AppLockManager.isLockScreenShown.set(false)
                     finish() // Close transparent activity if failed/canceled
                 }
 
@@ -75,6 +78,8 @@ class TransparentBiometricActivity: FragmentActivity() {
             biometricPrompt.authenticate(promptInfo)
         } catch (e: Exception) {
             Log.e(TAG, "Biometric failed to start", e)
+            AppLockManager.reportBiometricAuthFinished()
+            AppLockManager.isLockScreenShown.set(false)
             finish()
         }
     }

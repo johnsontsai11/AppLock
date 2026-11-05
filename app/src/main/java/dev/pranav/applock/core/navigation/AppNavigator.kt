@@ -1,6 +1,7 @@
 package dev.pranav.applock.core.navigation
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -126,6 +127,11 @@ fun AppNavHost(navController: NavHostController, startDestination: String) {
                         }
                     )
                 }
+            }
+
+            // Pressing back must not pop the lock screen and reveal the screen underneath it.
+            BackHandler {
+                context.moveTaskToBack(true)
             }
         }
 
