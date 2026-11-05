@@ -46,6 +46,7 @@ import dev.pranav.applock.core.utils.openAccessibilitySettings
 import dev.pranav.applock.data.repository.AppLockRepository
 import dev.pranav.applock.data.repository.BackendImplementation
 import dev.pranav.applock.features.admin.AdminDisableActivity
+import dev.pranav.applock.services.AppLockManager
 import dev.pranav.applock.services.ShizukuAppLockService
 import dev.pranav.applock.services.UsageLockService
 import dev.pranav.applock.ui.components.DonateButton
@@ -320,7 +321,7 @@ fun SettingsScreen(
                             icon = Timer,
                             title = stringResource(R.string.settings_screen_unlock_duration_title),
                             subtitle = if (unlockTimeDuration > 0) {
-                                if (unlockTimeDuration > 10_000) "Until screen off"
+                                if (unlockTimeDuration >= AppLockManager.UNLOCK_UNTIL_SCREEN_OFF_THRESHOLD) "Until screen off"
                                 else stringResource(
                                     R.string.settings_screen_unlock_duration_summary_minutes,
                                     unlockTimeDuration

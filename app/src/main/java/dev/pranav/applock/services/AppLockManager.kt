@@ -52,7 +52,18 @@ fun Context.isServiceRunning(serviceClass: Class<*>): Boolean {
 object AppLockManager {
     private const val TAG = "AppLockManager"
 
+    /**
+     * Durations (in minutes) at or above this value mean "keep unlocked until the screen turns off".
+     */
+    const val UNLOCK_UNTIL_SCREEN_OFF_THRESHOLD = 10_000
+
+    @Volatile
     var temporarilyUnlockedApp: String = ""
+
+    /**
+     * Last time each app was unlocked or left while unlocked. The unlock duration is measured
+     * from this timestamp.
+     */
     val appUnlockTimes = ConcurrentHashMap<String, Long>()
     val isLockScreenShown = AtomicBoolean(false)
     var currentBiometricState: AppLockAccessibilityService.BiometricState? = null
@@ -117,8 +128,57 @@ object AppLockManager {
     fun isAppTemporarilyUnlocked(packageName: String): Boolean =
         temporarilyUnlockedApp == packageName
 
+    /**
+     * Ends the current unlocked session. If the app has an unlock timestamp, it is refreshed to
+     * "now" so the unlock duration counts from the moment the user left the app, rather than from
+     * the moment it was first unlocked.
+     */
     fun clearTemporarilyUnlockedApp() {
+        val app = temporarilyUnlockedApp
+        if (app.isNotEmpty()) {
+            appUnlockTimes.computeIfPresent(app) { _, _ -> System.currentTimeMillis() }
+        }
         temporarilyUnlockedApp = ""
+    }
+
+    /**
+     * Forgets every unlock (e.g. when the screen turns off or the device gets locked).
+     */
+    fun resetAllUnlockState() {
+        temporarilyUnlockedApp = ""
+        appUnlockTimes.clear()
+    }
+
+    /**
+     * Returns true if [packageName] is still inside its unlock duration window. When it is, the
+     * app is marked as the temporarily unlocked app again so that the session continues and the
+     * lock screen does not pop up while the user is actively using it.
+     */
+    fun isWithinUnlockDuration(
+        packageName: String,
+        durationMinutes: Int,
+        currentTime: Long = System.currentTimeMillis()
+    ): Boolean {
+        if (durationMinutes <= 0) return false
+        val unlockTimestamp = appUnlockTimes[packageName] ?: return false
+
+        if (durationMinutes < UNLOCK_UNTIL_SCREEN_OFF_THRESHOLD) {
+            val durationMillis = durationMinutes.toLong() * 60_000L
+            val elapsedMillis = currentTime - unlockTimestamp
+            LogUtils.d(
+                TAG,
+                "Unlock duration check for $packageName: elapsed=${elapsedMillis}ms, duration=${durationMillis}ms"
+            )
+            // A negative elapsed time means the clock was changed; treat it as expired.
+            if (elapsedMillis < 0 || elapsedMillis >= durationMillis) {
+                LogUtils.d(TAG, "Unlock duration expired for $packageName")
+                appUnlockTimes.remove(packageName)
+                return false
+            }
+        }
+
+        temporarilyUnlockedApp = packageName
+        return true
     }
 
     fun clearAppUnlockState(packageName: String) {

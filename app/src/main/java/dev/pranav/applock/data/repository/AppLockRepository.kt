@@ -79,7 +79,11 @@ class AppLockRepository(private val context: Context) {
     fun setProtectEnabled(enabled: Boolean) = preferencesRepository.setProtectEnabled(enabled)
     fun isProtectEnabled(): Boolean = preferencesRepository.isProtectEnabled()
 
-    fun setUnlockTimeDuration(minutes: Int) = preferencesRepository.setUnlockTimeDuration(minutes)
+    fun setUnlockTimeDuration(minutes: Int) {
+        preferencesRepository.setUnlockTimeDuration(minutes)
+        // Unlocks granted under the previous setting must not carry over to the new one.
+        AppLockManager.resetAllUnlockState()
+    }
     fun getUnlockTimeDuration(): Int = preferencesRepository.getUnlockTimeDuration()
     fun setAutoUnlockEnabled(enabled: Boolean) = preferencesRepository.setAutoUnlockEnabled(enabled)
     fun isAutoUnlockEnabled(): Boolean = preferencesRepository.isAutoUnlockEnabled()

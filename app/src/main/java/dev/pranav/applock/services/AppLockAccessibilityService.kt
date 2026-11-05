@@ -57,8 +57,7 @@ class AppLockAccessibilityService : AccessibilityService() {
                 if (intent?.action == Intent.ACTION_SCREEN_OFF) {
                     LogUtils.d(TAG, "Screen off detected. Resetting AppLock state.")
                     AppLockManager.isLockScreenShown.set(false)
-                    AppLockManager.clearTemporarilyUnlockedApp()
-                    AppLockManager.appUnlockTimes.clear()
+                    AppLockManager.resetAllUnlockState()
                 }
             } catch (e: Exception) {
                 logError("Error in screenStateReceiver", e)
@@ -215,8 +214,7 @@ class AppLockAccessibilityService : AccessibilityService() {
     private fun isValidPackageForLocking(packageName: String): Boolean {
         // Check if device is locked
         if (applicationContext.isDeviceLocked()) {
-            AppLockManager.appUnlockTimes.clear()
-            AppLockManager.clearTemporarilyUnlockedApp()
+            AppLockManager.resetAllUnlockState()
             return false
         }
 
@@ -287,34 +285,14 @@ class AppLockAccessibilityService : AccessibilityService() {
         AppLockManager.clearTemporarilyUnlockedApp()
 
         val unlockDurationMinutes = appLockRepository.getUnlockTimeDuration()
-        val unlockTimestamp = AppLockManager.appUnlockTimes[packageName] ?: 0L
 
         LogUtils.d(
             TAG,
-            "checkAndLockApp: pkg=$packageName, duration=$unlockDurationMinutes min, unlockTime=$unlockTimestamp, currentTime=$currentTime, isLockScreenShown=${AppLockManager.isLockScreenShown.get()}"
+            "checkAndLockApp: pkg=$packageName, duration=$unlockDurationMinutes min, unlockTime=${AppLockManager.appUnlockTimes[packageName]}, currentTime=$currentTime, isLockScreenShown=${AppLockManager.isLockScreenShown.get()}"
         )
 
-        if (unlockDurationMinutes > 0 && unlockTimestamp > 0) {
-            if (unlockDurationMinutes >= 10_000) {
-                return
-            }
-
-            val durationMillis = unlockDurationMinutes.toLong() * 60L * 1000L
-
-            val elapsedMillis = currentTime - unlockTimestamp
-
-            LogUtils.d(
-                TAG,
-                "Grace period check: elapsed=${elapsedMillis}ms (${elapsedMillis / 1000}s), duration=${durationMillis}ms (${durationMillis / 1000}s)"
-            )
-
-            if (elapsedMillis < durationMillis) {
-                return
-            }
-
-            LogUtils.d(TAG, "Unlock grace period expired for $packageName. Clearing timestamp.")
-            AppLockManager.appUnlockTimes.remove(packageName)
-            AppLockManager.clearTemporarilyUnlockedApp()
+        if (AppLockManager.isWithinUnlockDuration(packageName, unlockDurationMinutes, currentTime)) {
+            return
         }
 
         if (AppLockManager.isLockScreenShown.get() ||

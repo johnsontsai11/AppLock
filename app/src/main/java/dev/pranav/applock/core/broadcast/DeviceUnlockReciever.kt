@@ -16,8 +16,7 @@ class DeviceUnlockReceiver(private val onDeviceUnlocked: () -> Unit) : Broadcast
             }
 
             Intent.ACTION_SCREEN_OFF -> {
-                AppLockManager.clearTemporarilyUnlockedApp()
-                AppLockManager.appUnlockTimes.clear()
+                AppLockManager.resetAllUnlockState()
                 LogUtils.d("DeviceUnlockReceiver", "Screen turned OFF (locked)")
             }
         }

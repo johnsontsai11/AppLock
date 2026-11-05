@@ -59,7 +59,7 @@ class ShizukuActivityManager(
                 }
 
                 Intent.ACTION_SCREEN_OFF -> {
-                    AppLockManager.clearTemporarilyUnlockedApp()
+                    AppLockManager.resetAllUnlockState()
                     shouldLockAppsOnReturn = true
                     lastForegroundApp = ""
                 }
